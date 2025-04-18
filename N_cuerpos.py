@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import time
 from math import sqrt, pi
 import sys
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import animation
 
 ##########################
 # Métodos de integración
@@ -354,6 +356,50 @@ def read_data(filename, system_type="sun_earth"):
         sys.exit("Tipo de sistema desconocido.")
     return x, y, z, vx, vy, vz, mass
 
+
+def animate_3d_orbits(q, labels=None, filename='animation.gif', fps=20, rotate=False):
+    # q: (steps, N, 6)
+    positions = q[:, :, :3]
+    steps, N, _ = positions.shape
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    lines = [ax.plot([], [], [], label=(labels[i] if labels else f'Body {i}'))[0] for i in range(N)]
+    points = [ax.plot([], [], [], 'o')[0] for _ in range(N)]
+
+    max_range = np.max(np.abs(positions))
+    ax.set_xlim(-max_range, max_range)
+    ax.set_ylim(-max_range, max_range)
+    ax.set_zlim(-max_range, max_range)
+    ax.set_xlabel('X [AU]')
+    ax.set_ylabel('Y [AU]')
+    ax.set_zlabel('Z [AU]')
+    ax.legend()
+
+    def init():
+        for line, point in zip(lines, points):
+            line.set_data([], [])
+            line.set_3d_properties([])
+            point.set_data([], [])
+            point.set_3d_properties([])
+        return lines + points
+
+    def update(frame):
+        for i, (line, point) in enumerate(zip(lines, points)):
+            traj = positions[:frame+1, i]
+            line.set_data(traj[:, 0], traj[:, 1])
+            line.set_3d_properties(traj[:, 2])
+            point.set_data(traj[-1, 0], traj[-1, 1])
+            point.set_3d_properties(traj[-1, 2])
+        if rotate:
+            ax.view_init(elev=30, azim=360 * frame / steps)
+        return lines + points
+
+    ani = animation.FuncAnimation(fig, update, frames=steps, init_func=init, blit=True)
+    ani.save(filename, writer='pillow', fps=fps)
+    plt.close(fig)
+    print(f'Animation saved as {filename}')
+
 ##########################
 # Función principal
 ##########################
@@ -364,9 +410,9 @@ def main():
     print("  2. Sistema S0 (13 estrellas + SgrA*)")
     opcion = input("Opción (1/2): ").strip()
     steps_n = int(input("Número de pasos a integrar: "))
-    print("Número de pasos a integrar: ", steps_n)
     Anios_simulacion = float(input("Años de simulación: "))
-    print("Años a simular: ", Anios_simulacion)
+    print("Número de pasos a integrar:", steps_n)
+    print("Años a simular:", Anios_simulacion)
 
     if opcion == "1":
         system_type = "sun_earth"
@@ -458,5 +504,12 @@ def main():
     # Graficar la evolución energética
     energyPlot(T, U, E, integrator_used)
     
-if __name__ == "__main__":
+    # Animar la órbita 3D
+    labels = [n for n,_ in names]
+    animate_3d_orbits(q, labels=labels, filename='animacion.gif', fps=20, rotate=True)
+if __name__ == '__main__':
     main()
+
+
+
+
