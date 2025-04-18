@@ -357,16 +357,36 @@ def read_data(filename, system_type="sun_earth"):
     return x, y, z, vx, vy, vz, mass
 
 
-def animate_3d_orbits(q, labels=None, filename='animation.gif', fps=20, rotate=False):
-    # q: (steps, N, 6)
-    positions = q[:, :, :3]
-    steps, N, _ = positions.shape
-    fig = plt.figure(figsize=(8,6))
+
+##########################
+# ANIMACIÓN
+##########################
+
+
+
+def animate_3d_orbits(q, labels=None, filename='animation.gif',
+                      fps=20, rotate=False, step=1):
+    """
+    q: array (n_steps, N, 6)
+    labels: list of labels for each body
+    filename: nombre de archivo de salida
+    fps: cuadros por segundo
+    rotate: si True, rota la cámara durante la animación
+    step: submuestreo (toma 1 de cada 'step' frames)
+    """
+    # Aplicar submuestreo
+    positions = q[::step, :, :3]
+    frames, N, _ = positions.shape
+
+    fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection='3d')
 
-    lines = [ax.plot([], [], [], label=(labels[i] if labels else f'Body {i}'))[0] for i in range(N)]
+    # Crear líneas y puntos para cada cuerpo
+    lines = [ax.plot([], [], [], label=(labels[i] if labels else f'Body {i}'))[0]
+             for i in range(N)]
     points = [ax.plot([], [], [], 'o')[0] for _ in range(N)]
 
+    # Ajustar límites según el rango máximo de posiciones
     max_range = np.max(np.abs(positions))
     ax.set_xlim(-max_range, max_range)
     ax.set_ylim(-max_range, max_range)
@@ -374,7 +394,8 @@ def animate_3d_orbits(q, labels=None, filename='animation.gif', fps=20, rotate=F
     ax.set_xlabel('X [AU]')
     ax.set_ylabel('Y [AU]')
     ax.set_zlabel('Z [AU]')
-    ax.legend()
+    if labels:
+        ax.legend()
 
     def init():
         for line, point in zip(lines, points):
@@ -392,26 +413,31 @@ def animate_3d_orbits(q, labels=None, filename='animation.gif', fps=20, rotate=F
             point.set_data(traj[-1, 0], traj[-1, 1])
             point.set_3d_properties(traj[-1, 2])
         if rotate:
-            ax.view_init(elev=30, azim=360 * frame / steps)
+            ax.view_init(elev=30, azim=360 * frame / frames)
         return lines + points
 
-    ani = animation.FuncAnimation(fig, update, frames=steps, init_func=init, blit=True)
+    ani = animation.FuncAnimation(fig, update, frames=frames,
+                                  init_func=init, blit=True)
     ani.save(filename, writer='pillow', fps=fps)
     plt.close(fig)
     print(f'Animation saved as {filename}')
 
+
 ##########################
 # Función principal
 ##########################
+
+
 
 def main():
     print("Seleccione el sistema a simular:")
     print("  1. Sistema Sol-Tierra")
     print("  2. Sistema S0 (13 estrellas + SgrA*)")
     opcion = input("Opción (1/2): ").strip()
+
     steps_n = int(input("Número de pasos a integrar: "))
-    Anios_simulacion = float(input("Años de simulación: "))
     print("Número de pasos a integrar:", steps_n)
+    Anios_simulacion = float(input("Años de simulación: "))
     print("Años a simular:", Anios_simulacion)
 
     if opcion == "1":
@@ -419,8 +445,8 @@ def main():
         filename = "sun_earth.dat"
         names = [['Sol', 'gold'], ['Tierra', 'blue']]
         t0 = 0.0
-        tf = Anios_simulacion    # 2 años de simulación aproximadamente
-        steps = steps_n   # Para métodos de paso fijo (no se usa en Bulirsch-Stoer)
+        tf = Anios_simulacion
+        steps = steps_n
         print("\nSimulando el sistema Sol-Tierra...")
     elif opcion == "2":
         system_type = "S0stars"
@@ -452,7 +478,7 @@ def main():
     x, y, z, vx, vy, vz, mass = read_data(filename, system_type)
     N = len(mass)
     print("Número de partículas =", N)
-    
+
     q0 = np.array([x, y, z, vx, vy, vz]).T
     t0_val = t0
     tf_val = tf
@@ -487,29 +513,34 @@ def main():
         q = bulirsch_stoer(S.EoM, q0, t0_val, tf_val, dt, tol)
     end_time = time.time()
     print("\nTiempo de cómputo usando", integrator_used, "fue:", end_time - start_time, "segundos.\n")
-    
-    # Para métodos adaptativos (Bulirsch-Stoer), se toma el número real de pasos en la solución:
+
     n_steps = q.shape[0]
-    
-    # Calcular la evolución de la energía total usando la rutina incorporada.
     T, U, E = compute_energy_evolution(S, q)
     energia_inicial = E[0]
     energia_final = E[-1]
     print("Cambio en la energía total (E_inicial - E_final):", energia_inicial - energia_final, "\n")
-    
-    # Graficar las órbitas (se muestrea la solución para acelerar la visualización)
+
     stride = max(1, n_steps // 100)
     plot3D(q[::stride], names, integrator_used)
-    
-    # Graficar la evolución energética
     energyPlot(T, U, E, integrator_used)
-    
-    # Animar la órbita 3D
-    labels = [n for n,_ in names]
-    animate_3d_orbits(q, labels=labels, filename='animacion.gif', fps=20, rotate=True)
+
+    # Submuestreo para animación
+    try:
+        step = int(input("Submuestreo para animación (ej. 10 para tomar 1 de cada 10 frames): "))
+        if step < 1:
+            step = 1
+    except ValueError:
+        step = 1
+
+    labels = [n for n, _ in names]
+    animate_3d_orbits(
+        q,
+        labels=labels,
+        filename='animacion.gif',
+        fps=20,
+        rotate=True,
+        step=step
+    )
+
 if __name__ == '__main__':
     main()
-
-
-
-
