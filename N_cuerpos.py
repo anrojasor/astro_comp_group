@@ -406,18 +406,17 @@ def animate_3d_orbits(q, labels=None, filename='animation.gif',
         return lines + points
 
     def update(frame):
-        for i, (line, point) in enumerate(zip(lines, points)):
-            traj = positions[:frame+1, i]
-            line.set_data(traj[:, 0], traj[:, 1])
-            line.set_3d_properties(traj[:, 2])
-            point.set_data(traj[-1, 0], traj[-1, 1])
-            point.set_3d_properties(traj[-1, 2])
-        if rotate:
-            ax.view_init(elev=30, azim=360 * frame / frames)
-        return lines + points
-
-    ani = animation.FuncAnimation(fig, update, frames=frames,
-                                  init_func=init, blit=True)
+	    for i, (line, point) in enumerate(zip(lines, points)):
+	        traj = positions[:frame+1, i]
+	        line.set_data(traj[:, 0], traj[:, 1])
+	        line.set_3d_properties(traj[:, 2])
+	        point.set_data([traj[-1, 0]], [traj[-1, 1]])  # Aquí el fix
+	        point.set_3d_properties([traj[-1, 2]])        # También aquí
+	    if rotate:
+	        ax.view_init(elev=30, azim=360 * frame / frames)
+	    return lines + points
+	
+    ani = animation.FuncAnimation(fig, update, frames=frames,init_func=init, blit=True)
     ani.save(filename, writer='pillow', fps=fps)
     plt.close(fig)
     print(f'Animation saved as {filename}')
@@ -538,7 +537,7 @@ def main():
         labels=labels,
         filename='animacion.gif',
         fps=20,
-        rotate=True,
+        rotate=False, ### por si quieren que rote
         step=step
     )
 
