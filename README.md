@@ -1,10 +1,11 @@
 # astro_comp_group
 **Proyecto 03**
+
 -Integrantes:
-.David Santiago Cuchigay 
-.Daniel Rojas
-.David Sáenz 
-.Óscar Calvo
+-David Santiago Cuchigay 
+-Daniel Rojas
+-David Sáenz 
+-Óscar Calvo
 ## Respuestas preguntas
 **3.¿El comportamiento mejora o empeora al modificar el paso de la integración?**
 
