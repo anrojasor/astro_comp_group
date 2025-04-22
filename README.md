@@ -1,5 +1,10 @@
 # astro_comp_group
-Repositorio creado para el manejo de proyectos de astro computacional
+**Proyecto 03**
+-Integrantes:
+.David Santiago Cuchigay 
+.Daniel Rojas
+.David Sáenz 
+.Óscar Calvo
 ## Respuestas preguntas
 **3.¿El comportamiento mejora o empeora al modificar el paso de la integración?**
 
